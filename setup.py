@@ -2,8 +2,8 @@ from setuptools import setup, find_packages
 
 setup(name='borc',
       version='0.1',
-      description='Bayesian Optimization for Reinforced Concrete',
-      url='https://github.com/jamesalexwhiteley/borc',
+      description='Prestressed concrete design in python',
+      url='https://github.com/jamesalexwhiteley/pystressed',
       author='James Whiteley',
       author_email='james.al.whiteley@gmail.com',
       license='MIT',
