@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-setup(name='borc',
+setup(name='pystressed',
       version='0.1',
       description='Prestressed concrete design in python',
       url='https://github.com/jamesalexwhiteley/pystressed',
