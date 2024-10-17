@@ -1,3 +1,3 @@
 # PyStressed
 
-    Prestressed concrete design in python. 
+Prestressed concrete design in python. 
