@@ -1,19 +1,11 @@
-import matplotlib.pyplot as plt
-import numpy as np
-from scipy.optimize import linprog
 from shapely.geometry import LineString, Point, MultiPoint
+import matplotlib.pyplot as plt
 import cvxpy as cp
 
 plt.rcParams['font.family'] = 'sans-serif'
 plt.rcParams['font.sans-serif'] = ['Arial']
-plt.rcParams.update({'font.size': 12})
 
 # Author: James Whiteley (github.com/jamesalexwhiteley)
-
-class SectionForce():
-    def __init__(self, **kwargs):
-        for key, value in kwargs.items():
-            setattr(self, key, value)
 
 def get_unique_intersections(lines):
     # find all unique intersections between lines
@@ -32,24 +24,24 @@ def plot_line(start, end, label, alp, linestyle, extension, color):
     delta_x = end[0] - start[0]
     delta_y = end[1] - start[1]
     extended_end = (start[0] + delta_x * extension, start[1] + delta_y * extension)
-    plt.plot([start[0], extended_end[0]], [start[1], extended_end[1]], 'k', label=label, alpha=alp, linestyle=linestyle, color=color)
+    plt.plot([start[0], extended_end[0]], [start[1], extended_end[1]], label=label, alpha=alp, linestyle=linestyle, color=color)
     # plt.plot([start[1], extended_end[1]], [start[0], extended_end[0]], label=label, alpha=alp, linestyle=linestyle, color=color)
     return (start, extended_end)
 
-def plot_lines(Z, A, P, e, labels, alp, linestyles, line_ext, get_intersections, color):
+def plot_lines(Z, A, P, e, labels, alp, linestyles, line_ext, print_intersections, color):
 
     lines = []
     for i, z in enumerate(Z):
         start, end = plot_line((0, -z / A), (1 / P, e[i]), labels[i], alp[i], linestyles[i], line_ext, color=color)
         lines.append(LineString([start, end]))
 
-    if get_intersections: 
+    if print_intersections: 
         print("Intersection Points:")
         for point in get_unique_intersections(lines):
             if point[0] != 0:
                 print(f"P={float(1/point[0])*1e-3:.0f} kN, e={float(point[1]):.0f}")
 
-def _plot_magnel(transfer, P0, e0, service, P1, e1, line_ext=2.0, get_intersections=False):
+def _plot_magnel(transfer, P0, e0, service, P1, e1, line_ext=2.0, print_intersections=False):
     
     # plot Magnel diagram      
     Ztop0, Zbot0, A0 = transfer.Ztop, transfer.Zbot, transfer.A
@@ -66,15 +58,15 @@ def _plot_magnel(transfer, P0, e0, service, P1, e1, line_ext=2.0, get_intersecti
 
     plt.figure(figsize=(6,6))
 
-    plot_lines(Z0, A0, P0, e0, labels0, alp, linestyles, line_ext, get_intersections=get_intersections, color='k')
-    plot_lines(Z1, A1, P1, e1, labels1, alp, linestyles, line_ext, get_intersections=get_intersections, color='b')
+    plot_lines(Z0, A0, P0, e0, labels0, alp, linestyles, line_ext, print_intersections=print_intersections, color='k')
+    plot_lines(Z1, A1, P1, e1, labels1, alp, linestyles, line_ext, print_intersections=print_intersections, color='b')
     
-    plt.xlabel("1/P")
-    plt.ylabel("e")
+    plt.xlabel(r"1/P (N$^{-1})$")
+    plt.ylabel(r"e (mm)")
     plt.grid(True, color='grey', linestyle='-', linewidth=0.5, alpha=0.3)
     plt.legend()
     plt.tight_layout()
-    plt.savefig('magnel.png', bbox_inches='tight', dpi=600)
+    # plt.savefig('magnel.png', bbox_inches='tight', dpi=600)
     plt.show()
 
 def e_inequality(f, Z, M, A, P):
@@ -90,16 +82,26 @@ def calc_inequalities(state, P):
     
     return c1, t1, c2, t2
 
-def plot_magnel(transfer, service, line_ext=2.0, get_intersections=False):
+def plot_magnel(transfer, service, line_ext=2.0, print_intersections=False):
+    """
+    Plot the Magnel diagram,
+        loading states: 1) at transfer and 2) in service.
+
+    """
 
     P0 = transfer.fc * transfer.A/2 # arbitrary, but fc*A/2 suitable
     e0 = calc_inequalities(transfer, P0)
     P1 = service.fc * service.A/2 
     e1 = calc_inequalities(service, P1)
 
-    return _plot_magnel(transfer, P0, e0, service, P1, e1, line_ext=line_ext, get_intersections=get_intersections)
+    return _plot_magnel(transfer, P0, e0, service, P1, e1, line_ext=line_ext, print_intersections=print_intersections)
 
-def optimize(transfer, ebounds, mode='min', output=False):
+def optimize_magnel(transfer, service, ebounds, mode='min', output=False):
+    """
+    Solve the linear programming problem,
+        loading states: 1) at transfer and 2) in service.
+
+    """
 
     A0, fc0, ft0, Ztop0, Zbot0, Mmax0, Mmin0 = transfer.A, transfer.fc, transfer.ft, transfer.Ztop, transfer.Zbot, transfer.Mmax, transfer.Mmin,
     A1, fc1, ft1, Ztop1, Zbot1, Mmax1, Mmin1 = service.A, service.fc, service.ft, service.Ztop, service.Zbot, service.Mmax, service.Mmin,
@@ -157,38 +159,11 @@ def optimize(transfer, ebounds, mode='min', output=False):
         R_opt = R.value*scale
         e_opt = e.value
         if output:
-            print(f"Optimal R: {R_opt}")
-            print(f"Optimal e: {e_opt}")
-            print(f"Optimal P: {1/R_opt*1e-3}")
+            print(f"Optimal 1/P: {R_opt}")
+            print(f"Optimal e  : {e_opt:.0f} mm")
+            print(f"Optimal P  : {round(1/R_opt*1e-3):.0f} kN")
         return R_opt, e_opt
     else:
         if output: 
             print(f"Optimization failed. Status: {problem.status}")
         return None, None 
-
-# transfer 
-A = 0.16e6 # mm2 
-fc = 20 # N/mm2 
-ft = 0 # N/mm2
-Ztop = 34.4e6 # mm3
-Zbot = 29.3e6 # mm3
-Mmax = 530e6 # Nmm
-Mmin = 108e6 # Nmm
-losses = 0.95 # TODO 
-ebounds = [0, 500] # mm
-transfer = SectionForce(A=A, fc=fc, ft=ft, Ztop=Ztop, Zbot=Zbot, Mmax=Mmax, Mmin=Mmin, losses=losses)
-
-# service 
-A = 0.16e6 # mm2
-fc = 20 # N/mm2 
-ft = 0 # N/mm2
-Ztop = 34.4e6 # mm3 
-Zbot = 29.3e6 # mm3 
-Mmax = 630e6 # Nmm 
-Mmin = 208e6 # Nmm 
-losses = 0.85 # TODO 
-ebounds = [0, 1000] # mm 
-service = SectionForce(A=A, fc=fc, ft=ft, Ztop=Ztop, Zbot=Zbot, Mmax=Mmax, Mmin=Mmin, losses=losses)
-
-optimize(transfer=transfer, ebounds=ebounds, mode='min', output=True) 
-plot_magnel(transfer=transfer, service=service, get_intersections=True, line_ext=2.2) 
