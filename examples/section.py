@@ -38,4 +38,4 @@ service = SectionForce(A=A, fc=fc, ft=ft, Ztop=Ztop, Zbot=Zbot, Mmax=Mmax, Mmin=
 
 # design at servicability limit state 
 optimize_magnel(transfer=transfer, service=service, ebounds=ebounds, mode='min', output=True) 
-# plot_magnel(transfer=transfer, service=service, line_ext=2.2) 
+plot_magnel(transfer=transfer, service=service, line_ext=2.2) 
