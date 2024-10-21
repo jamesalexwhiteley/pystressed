@@ -82,7 +82,7 @@ def calc_inequalities(state, P):
     
     return c1, t1, c2, t2
 
-def plot_magnel(transfer, service, line_ext=2.0, print_intersections=False):
+def plot_magnel_no_losses(transfer, service, line_ext=2.0, print_intersections=False):
     """
     Plot the Magnel diagram, loading states: 1) at transfer and 2) in service.
     NOTE losses are not considered 
