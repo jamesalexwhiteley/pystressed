@@ -161,8 +161,8 @@ def optimize_magnel(transfer, service, ebounds, mode='min', output=False):
             print(f"Optimal 1/P: {R_opt}")
             print(f"Optimal e  : {e_opt:.0f} mm")
             print(f"Optimal P  : {round(1/R_opt*1e-3):.0f} kN")
-        return R_opt, e_opt
+        return 1/R_opt, e_opt
     else:
         if output: 
             print(f"Optimization failed. Status: {problem.status}")
-        return None, None 
+        return 0.0, 0.0 
