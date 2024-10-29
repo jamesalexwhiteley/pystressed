@@ -4,7 +4,7 @@ from scipy.optimize import linprog
 from shapely.geometry import LineString, Point, MultiPoint
 
 from pystressed.models import SectionForce
-from pystressed.SLS import plot_magnel_no_losses, optimize_magnel 
+from pystressed.SLS import plot_magnel, optimize_magnel 
 
 plt.rcParams['font.family'] = 'sans-serif'
 plt.rcParams['font.sans-serif'] = ['Arial']
@@ -29,7 +29,7 @@ A = 0.16e6 # mm2
 fc = 20 # N/mm2 
 ft = 0 # N/mm2
 Ztop = 34.4e6 # mm3 
-Zbot = 29.3e6 # mm3 
+Zbot = 29.3e6 # mm3     
 Mmax = 530e6 # Nmm 
 Mmin = 158e6 # Nmm 
 losses = 0.85
@@ -38,4 +38,4 @@ service = SectionForce(A=A, fc=fc, ft=ft, Ztop=Ztop, Zbot=Zbot, Mmax=Mmax, Mmin=
 
 # design at servicability limit state 
 optimize_magnel(transfer=transfer, service=service, ebounds=ebounds, mode='min', output=True) 
-plot_magnel_no_losses(transfer=transfer, service=service, line_ext=2.2) 
+plot_magnel(transfer=transfer, service=service, line_ext=2.2) 

@@ -58,8 +58,9 @@ def _plot_magnel(transfer, P0, e0, service, P1, e1, line_ext=2.0, print_intersec
 
     plt.figure(figsize=(6,6))
 
-    plot_lines(Z0, A0, P0, e0, labels0, alp, linestyles, line_ext, print_intersections=print_intersections, color='k')
-    plot_lines(Z1, A1, P1, e1, labels1, alp, linestyles, line_ext, print_intersections=print_intersections, color='b')
+    # account for losses here 
+    plot_lines(Z0, A0, P0 / transfer.losses, e0, labels0, alp, linestyles, line_ext, print_intersections=print_intersections, color='k')
+    plot_lines(Z1, A1, P1 /  service.losses, e1, labels1, alp, linestyles, line_ext, print_intersections=print_intersections, color='b')
     
     plt.xlabel(r"1/P (N$^{-1})$")
     plt.ylabel(r"e (mm)")
@@ -77,15 +78,14 @@ def calc_inequalities(state, P):
     fc, ft, A, Ztop, Zbot, Mmax, Mmin = state.fc, state.ft, state.A, state.Ztop, state.Zbot, state.Mmax, state.Mmin
     c1 = e_inequality(fc, -Ztop, Mmax, A, P) 
     t1 = e_inequality(ft, -Ztop, Mmin, A, P) 
-    c2 = e_inequality(fc, Zbot, Mmin, A, P)  
-    t2 = e_inequality(ft, Zbot, Mmax, A, P)
+    c2 = e_inequality(fc, Zbot, Mmin, A, P) 
+    t2 = e_inequality(ft, Zbot, Mmax, A, P) 
     
     return c1, t1, c2, t2
 
-def plot_magnel_no_losses(transfer, service, line_ext=2.0, print_intersections=False):
+def plot_magnel(transfer, service, line_ext=2.0, print_intersections=False):
     """
     Plot the Magnel diagram, loading states: 1) at transfer and 2) in service.
-    NOTE losses are not considered 
 
     """
 
