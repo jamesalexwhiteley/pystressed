@@ -1,4 +1,4 @@
-from shapely.geometry import LineString, Point, MultiPoint
+# from shapely.geometry import LineString, Point, MultiPoint
 import matplotlib.pyplot as plt
 import cvxpy as cp
 
@@ -7,41 +7,62 @@ plt.rcParams['font.sans-serif'] = ['Arial']
 
 # Author: James Whiteley (github.com/jamesalexwhiteley)
 
-def get_unique_intersections(lines):
-    # find all unique intersections between lines
-    intersections = {
-        (point.x, point.y)
-        for i in range(len(lines))
-        for j in range(i + 1, len(lines))
-        for intersection in [lines[i].intersection(lines[j])]
-        if isinstance(intersection, Point) and not intersection.is_empty
-        or isinstance(intersection, MultiPoint) and not intersection.is_empty
-        for point in (intersection if isinstance(intersection, MultiPoint) else [intersection])
-    }
-    return intersections
+# def get_unique_intersections(lines):
+#     # find all unique intersections between lines
+#     intersections = {
+#         (point.x, point.y)
+#         for i in range(len(lines))
+#         for j in range(i + 1, len(lines))
+#         for intersection in [lines[i].intersection(lines[j])]
+#         if isinstance(intersection, Point) and not intersection.is_empty
+#         or isinstance(intersection, MultiPoint) and not intersection.is_empty
+#         for point in (intersection if isinstance(intersection, MultiPoint) else [intersection])
+#     }
+#     return intersections
 
 def plot_line(start, end, label, alp, linestyle, extension, color):
     delta_x = end[0] - start[0]
     delta_y = end[1] - start[1]
     extended_end = (start[0] + delta_x * extension, start[1] + delta_y * extension)
-    plt.plot([start[0], extended_end[0]], [start[1], extended_end[1]], label=label, alpha=alp, linestyle=linestyle, color=color)
-    # plt.plot([start[1], extended_end[1]], [start[0], extended_end[0]], label=label, alpha=alp, linestyle=linestyle, color=color)
+    # plt.plot([start[0], extended_end[0]], [start[1], extended_end[1]], label=label, alpha=alp, linestyle=linestyle, color=color)
+    plt.plot([start[0], extended_end[0]], [start[1], extended_end[1]], alpha=alp, linestyle=linestyle, color=color)
     return (start, extended_end)
 
-def plot_lines(Z, A, P, e, labels, alp, linestyles, line_ext, print_intersections, color):
+def plot_lines(Z, A, P, e, labels, alp, linestyles, line_ext, color):
 
-    lines = []
     for i, z in enumerate(Z):
-        start, end = plot_line((0, -z / A), (1 / P, e[i]), labels[i], alp[i], linestyles[i], line_ext, color=color)
-        lines.append(LineString([start, end]))
+        plot_line((0, -z / A), (1 / P, e[i]), labels[i], alp[i], linestyles[i], line_ext, color=color)
 
-    if print_intersections: 
-        print("Intersection Points:")
-        for point in get_unique_intersections(lines):
-            if point[0] != 0:
-                print(f"P={float(1/point[0])*1e-3:.0f} kN, e={float(point[1]):.0f}")
+    # lines = []
+    # for i, z in enumerate(Z):
+    #     start, end = plot_line((0, -z / A), (1 / P, e[i]), labels[i], alp[i], linestyles[i], line_ext, color=color)
+        # lines.append(LineString([start, end]))
 
-def _plot_magnel(transfer, P0, e0, service, P1, e1, line_ext=2.0, print_intersections=False):
+    # if print_intersections: 
+    #     print("Intersection Points:")
+    #     for point in get_unique_intersections(lines):
+    #         if point[0] != 0:
+    #             print(f"P={float(1/point[0])*1e-3:.0f} kN, e={float(point[1]):.0f}")
+
+def plot_reference_lines(ax, point, xlim, ylim, color='gray', linestyle='--', linewidth=1, zorder=5):
+    """
+    Plots dashed lines from the axes to a given point of interest.
+    
+    Parameters:
+        ax (matplotlib.axes.Axes): The axes object to plot on.
+        point (tuple): The (x, y) coordinates of the point of interest.
+        color (str): Color of the dashed lines.
+        linestyle (str): Line style (default is '--').
+        linewidth (float): Width of the lines.
+        zorder (int): Layer order of the lines.
+    """
+    # xlim = ax.get_xlim()
+    # ylim = ax.get_ylim()
+    
+    ax.plot([point[0], point[0]], [ylim[0], point[1]], color=color, linestyle=linestyle, linewidth=linewidth, zorder=zorder)
+    ax.plot([xlim[0], point[0]], [point[1], point[1]], color=color, linestyle=linestyle, linewidth=linewidth, zorder=zorder)
+
+def _plot_magnel(transfer, P0, e0, service, P1, e1, line_ext, min_max_points):
     
     # plot Magnel diagram      
     Ztop0, Zbot0, A0 = transfer.Ztop, transfer.Zbot, transfer.A
@@ -53,21 +74,35 @@ def _plot_magnel(transfer, P0, e0, service, P1, e1, line_ext=2.0, print_intersec
     top, bot = 'top', 'bot'
     labels0 = [fr'$f_{{c,{top},tf}}$', fr'$f_{{t,{top},tf}}$', fr'$f_{{c,{bot},tf}}$', fr'$f_{{t,{bot},tf}}$']
     labels1 = [fr'$f_{{c,{top},sv}}$', fr'$f_{{t,{top},sv}}$', fr'$f_{{c,{bot},sv}}$', fr'$f_{{t,{bot},sv}}$'] 
-    alp = [.4, 1, .4, 1]
-    linestyles = [(0, (10, 2, 1, 2)), (0, (10, 2, 1, 2)), '-', '-'] 
+    # alp = [.4, 1, .4, 1]
+    # linestyles = [(0, (10, 2, 1, 2)), (0, (10, 2, 1, 2)), '-', '-'] 
+    alp = [1, 1, 1, 1]
+    linestyles = ['-', '-', '-', '-'] 
 
-    plt.figure(figsize=(6,6))
+    fig, ax = plt.subplots(figsize=(6, 6))
 
     # account for losses here 
-    plot_lines(Z0, A0, P0 / transfer.losses, e0, labels0, alp, linestyles, line_ext, print_intersections=print_intersections, color='k')
-    plot_lines(Z1, A1, P1 /  service.losses, e1, labels1, alp, linestyles, line_ext, print_intersections=print_intersections, color='b')
+    plot_lines(Z0, A0, P0 / transfer.losses, e0, labels0, alp, linestyles, line_ext, color='k')
+    plot_lines(Z1, A1, P1 /  service.losses, e1, labels1, alp, linestyles, line_ext, color='k')
+
+    xlim = ax.get_xlim()
+    ylim = ax.get_ylim()
+
+    if min_max_points != None:
+        ax.scatter(min_max_points[0][0], min_max_points[0][1], s=75, color='black', edgecolor='white', zorder=10, label='Minimum prestress')
+        plot_reference_lines(ax, min_max_points[0], xlim, ylim)
+
+        ax.scatter(min_max_points[1][0], min_max_points[1][1], s=75, color='white', edgecolor='black', zorder=10, label='Maximum prestress')
+        plot_reference_lines(ax, min_max_points[1], xlim, ylim)
     
-    plt.xlabel(r"1/P (N$^{-1})$")
-    plt.ylabel(r"e (mm)")
-    plt.grid(True, color='grey', linestyle='-', linewidth=0.5, alpha=0.3)
-    plt.legend()
-    plt.tight_layout()
-    # plt.savefig('magnel.png', bbox_inches='tight', dpi=600)
+    ax.set_xlim(xlim[0], xlim[1])
+    ax.set_ylim(ylim[0], ylim[1])
+    ax.set_xlabel(r"1/P (N$^{-1})$")
+    ax.set_ylabel(r"Eccentricity (mm)")
+    ax.grid(True, color='grey', linestyle='-', linewidth=0.5, alpha=0.3)
+    ax.legend()
+    fig.tight_layout()
+    plt.savefig('magnel.png', bbox_inches='tight', dpi=600)
     plt.show()
 
 def e_inequality(f, Z, M, A, P):
@@ -83,7 +118,7 @@ def calc_inequalities(state, P):
     
     return c1, t1, c2, t2
 
-def plot_magnel(transfer, service, line_ext=2.0, print_intersections=False):
+def plot_magnel(transfer, service, line_ext=2.0, min_max_points=None):
     """
     Plot the Magnel diagram, loading states: 1) at transfer and 2) in service.
 
@@ -94,7 +129,7 @@ def plot_magnel(transfer, service, line_ext=2.0, print_intersections=False):
     P1 = service.fc * service.A/2 
     e1 = calc_inequalities(service, P1)
 
-    return _plot_magnel(transfer, P0, e0, service, P1, e1, line_ext=line_ext, print_intersections=print_intersections)
+    return _plot_magnel(transfer, P0, e0, service, P1, e1, line_ext=line_ext, min_max_points=min_max_points)
 
 def optimize_magnel(transfer, service, ebounds, mode='min', output=False):
     """
@@ -166,3 +201,17 @@ def optimize_magnel(transfer, service, ebounds, mode='min', output=False):
         if output: 
             print(f"Optimization failed. Status: {problem.status}")
         return 0.0, 0.0 
+    
+def optimize_and_plot_magnel(transfer, service, ebounds, output=False, line_ext=2.0):
+    """
+    Solve the linear programming problem, loading states: 1) at transfer and 2) in service and plot the associated Magnel diagram. 
+
+    """
+        
+    min_p, min_e = optimize_magnel(transfer=transfer, service=service, ebounds=ebounds, mode='min', output=output) 
+    max_p, max_e = optimize_magnel(transfer=transfer, service=service, ebounds=ebounds, mode='max', output=output) 
+
+    min_max_points = [[1/min_p, min_e], [1/max_p, max_e]]
+    
+    plot_magnel(transfer=transfer, service=service, line_ext=line_ext, min_max_points=min_max_points) 
+
