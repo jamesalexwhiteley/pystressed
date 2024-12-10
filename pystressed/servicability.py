@@ -7,24 +7,10 @@ plt.rcParams['font.sans-serif'] = ['Arial']
 
 # Author: James Whiteley (github.com/jamesalexwhiteley)
 
-# def get_unique_intersections(lines):
-#     # find all unique intersections between lines
-#     intersections = {
-#         (point.x, point.y)
-#         for i in range(len(lines))
-#         for j in range(i + 1, len(lines))
-#         for intersection in [lines[i].intersection(lines[j])]
-#         if isinstance(intersection, Point) and not intersection.is_empty
-#         or isinstance(intersection, MultiPoint) and not intersection.is_empty
-#         for point in (intersection if isinstance(intersection, MultiPoint) else [intersection])
-#     }
-#     return intersections
-
 def plot_line(start, end, label, alp, linestyle, extension, color):
     delta_x = end[0] - start[0]
     delta_y = end[1] - start[1]
     extended_end = (start[0] + delta_x * extension, start[1] + delta_y * extension)
-    # plt.plot([start[0], extended_end[0]], [start[1], extended_end[1]], label=label, alpha=alp, linestyle=linestyle, color=color)
     plt.plot([start[0], extended_end[0]], [start[1], extended_end[1]], alpha=alp, linestyle=linestyle, color=color)
     return (start, extended_end)
 
@@ -32,17 +18,6 @@ def plot_lines(Z, A, P, e, labels, alp, linestyles, line_ext, color):
 
     for i, z in enumerate(Z):
         plot_line((0, -z / A), (1 / P, e[i]), labels[i], alp[i], linestyles[i], line_ext, color=color)
-
-    # lines = []
-    # for i, z in enumerate(Z):
-    #     start, end = plot_line((0, -z / A), (1 / P, e[i]), labels[i], alp[i], linestyles[i], line_ext, color=color)
-        # lines.append(LineString([start, end]))
-
-    # if print_intersections: 
-    #     print("Intersection Points:")
-    #     for point in get_unique_intersections(lines):
-    #         if point[0] != 0:
-    #             print(f"P={float(1/point[0])*1e-3:.0f} kN, e={float(point[1]):.0f}")
 
 def plot_reference_lines(ax, point, xlim, ylim, color='gray', linestyle='--', linewidth=1, zorder=5):
     """
@@ -62,7 +37,7 @@ def plot_reference_lines(ax, point, xlim, ylim, color='gray', linestyle='--', li
     ax.plot([point[0], point[0]], [ylim[0], point[1]], color=color, linestyle=linestyle, linewidth=linewidth, zorder=zorder)
     ax.plot([xlim[0], point[0]], [point[1], point[1]], color=color, linestyle=linestyle, linewidth=linewidth, zorder=zorder)
 
-def _plot_magnel(transfer, P0, e0, service, P1, e1, line_ext, min_max_points):
+def _plot_magnel(transfer, P0, e0, service, P1, e1, line_ext, min_max_points, legend=False):
     
     # plot Magnel diagram      
     Ztop0, Zbot0, A0 = transfer.Ztop, transfer.Zbot, transfer.A
@@ -100,9 +75,9 @@ def _plot_magnel(transfer, P0, e0, service, P1, e1, line_ext, min_max_points):
     ax.set_xlabel(r"1/P (N$^{-1})$")
     ax.set_ylabel(r"Eccentricity (mm)")
     ax.grid(True, color='grey', linestyle='-', linewidth=0.5, alpha=0.3)
-    ax.legend()
     fig.tight_layout()
-    plt.savefig('magnel.png', bbox_inches='tight', dpi=600)
+    # plt.savefig('magnel.png', bbox_inches='tight', dpi=600)
+    # ax.legend()
     plt.show()
 
 def e_inequality(f, Z, M, A, P):
@@ -187,18 +162,25 @@ def optimize_magnel(transfer, service, ebounds, mode='min', output=False):
     ]
 
     problem = cp.Problem(objective, constraints)
-    problem.solve()
 
-    if problem.status == cp.OPTIMAL:
-        R_opt = R.value*scale
-        e_opt = e.value
+    try: 
+        problem.solve()
+
+        if problem.status == cp.OPTIMAL:
+            R_opt = R.value*scale
+            e_opt = e.value
+            if output:
+                print(f"Optimal 1/P: {R_opt}")
+                print(f"Optimal e  : {e_opt:.0f} mm")
+                print(f"Optimal P  : {round(1/R_opt*1e-3):.0f} kN")
+            return 1/R_opt, e_opt
+        else:
+            if output: 
+                print(f"Optimization failed. Status: {problem.status}")
+            return 0.0, 0.0 
+        
+    except Exception:
         if output:
-            print(f"Optimal 1/P: {R_opt}")
-            print(f"Optimal e  : {e_opt:.0f} mm")
-            print(f"Optimal P  : {round(1/R_opt*1e-3):.0f} kN")
-        return 1/R_opt, e_opt
-    else:
-        if output: 
             print(f"Optimization failed. Status: {problem.status}")
         return 0.0, 0.0 
     
