@@ -3,7 +3,7 @@
 Prestressed concrete design in python. 
 
 <div align="center">
-    <img src="figs/magnel.png" alt="Magnel diagram, loads at transfer and in service." width="400"/>
+    <img src="figs/magnel1.png" alt="Magnel diagram, loads at transfer and in service." width="400"/>
 </div>
 
 ```python
